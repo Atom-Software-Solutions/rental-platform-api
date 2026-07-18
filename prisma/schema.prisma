@@ -4,10 +4,278 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+//
+// ENUMS
+//
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum RoleType {
+  SUPER_ADMIN
+  TENANT_ADMIN
+  PROPERTY_MANAGER
+  ACCOUNTANT
+  STAFF
+}
+
+enum RegistrationStatus {
+  PENDING
+  VERIFIED
+  COMPLETED
+  EXPIRED
+}
+
+//
+// TENANT (Organization)
+//
+
+model Tenant {
+  id        String       @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String       @unique
+  email     String?
+  phone     String?
+  status    TenantStatus @default(ACTIVE)
+  deletedAt DateTime?
+  createdBy String?
+  updatedBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users              User[]
+  roles              Role[]
+  permissions        Permission[]
+  refreshTokens      RefreshToken[]
+  auditLogs          AuditLog[]
+  pendingRegistrations PendingRegistration[]
+
+  @@index([slug])
+  @@index([status])
+  @@map("tenants")
+}
+
+//
+// USERS
+//
+
+model User {
+  id String @id @default(uuid()) @db.Uuid
+
+  tenantId  String? @db.Uuid
+  tenant    Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  firstName String
+  lastName  String
+
+  email String
+  phone String?
+
+  passwordHash String
+
+  status UserStatus @default(PENDING)
+
+  emailVerified Boolean @default(false)
+
+  deletedAt DateTime?
+  createdBy String?
+  updatedBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userRoles            UserRole[]
+  refreshTokens        RefreshToken[]
+  auditLogs            AuditLog[]
+  pendingRegistrations PendingRegistration[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([status])
+  @@map("users")
+}
+
+//
+// ROLES
+//
+
+model Role {
+  id String @id @default(uuid()) @db.Uuid
+
+  tenantId String @db.Uuid
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name String
+  type RoleType
+
+  description String?
+  deletedAt   DateTime?
+  createdBy   String?
+  updatedBy   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userRoles   UserRole[]
+  permissions RolePermission[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("roles")
+}
+
+//
+// PERMISSIONS
+//
+
+model Permission {
+  id String @id @default(uuid()) @db.Uuid
+
+  tenantId String @db.Uuid
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  deletedAt   DateTime?
+  createdBy   String?
+  updatedBy   String?
+
+  rolePermissions RolePermission[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("permissions")
+}
+
+//
+// MANY TO MANY
+//
+
+model UserRole {
+  userId String @db.Uuid
+  roleId String @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now())
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String @db.Uuid
+  permissionId String @db.Uuid
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+//
+// REFRESH TOKENS
+//
+
+model RefreshToken {
+  id String @id @default(uuid()) @db.Uuid
+
+  tenantId String @db.Uuid
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenHash String @unique
+
+  expiresAt DateTime
+
+  revokedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+//
+// AUDIT LOG
+//
+
+model AuditLog {
+  id String @id @default(uuid()) @db.Uuid
+
+  tenantId String @db.Uuid
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  userId String? @db.Uuid
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  action String
+
+  entity String
+
+  entityId String?
+
+  metadata Json?
+
+  ipAddress String?
+
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([entity])
+  @@map("audit_logs")
+}
+
+model PendingRegistration {
+  id String @id @default(uuid()) @db.Uuid
+
+  email String
+  firstName String
+  lastName String
+  phone String?
+  passwordHash String
+  token String @unique
+  status RegistrationStatus @default(PENDING)
+  expiresAt DateTime
+  verifiedAt DateTime?
+  usedAt DateTime?
+
+  tenantId String? @db.Uuid
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  userId String? @db.Uuid
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@map("pending_registrations")
 }
