@@ -4,6 +4,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { EmailService } from './email.service';
 
+const mockEmailService = {
+  sendVerificationLink: jest.fn().mockResolvedValue(undefined),
+};
+
 const mockPrismaService = {
   pendingRegistration: {
     findFirst: jest.fn().mockResolvedValue(null),
@@ -16,10 +20,6 @@ const mockPrismaService = {
     create: jest.fn().mockResolvedValue({ id: 'user-1', email: 'test@example.com' }),
     update: jest.fn().mockResolvedValue({ id: 'user-1', email: 'test@example.com' }),
   },
-};
-
-const mockEmailService = {
-  sendVerificationLink: jest.fn().mockResolvedValue(undefined),
 };
 
 describe('AuthService', () => {
