@@ -1,9 +1,11 @@
-import { BadRequestException, ConflictException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import * as crypto from 'crypto';
 import type { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from './email.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
+import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
 @Injectable()
@@ -12,6 +14,7 @@ export class AuthService {
     @Inject('PrismaService')
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -121,6 +124,63 @@ export class AuthService {
       token: pending.token,
       email: pending.email,
       verified: true,
+    };
+  }
+
+  async login(loginDto: LoginDto) {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        email: loginDto.email,
+      },
+      select: {
+        id: true,
+        tenantId: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        passwordHash: true,
+        status: true,
+        emailVerified: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    if (user.status !== 'ACTIVE') {
+      throw new UnauthorizedException('Account is not active');
+    }
+
+    const passwordValid = await argon2.verify(user.passwordHash, loginDto.password);
+
+    if (!passwordValid) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      tenantId: user.tenantId,
+    };
+
+    const accessToken = this.jwtService.sign(payload);
+
+    return {
+      accessToken,
+      user: {
+        id: user.id,
+        tenantId: user.tenantId,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        status: user.status,
+        emailVerified: user.emailVerified,
+        createdAt: user.createdAt,
+      },
     };
   }
 

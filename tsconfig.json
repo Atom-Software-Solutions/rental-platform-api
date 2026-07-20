@@ -31,7 +31,6 @@
     "dist",
     "test",
     "src/generated",
-    "eslint.config.mjs",
-    "**/*.spec.ts"
+    "eslint.config.mjs"
   ]
 }
