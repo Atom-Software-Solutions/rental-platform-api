@@ -17,6 +17,8 @@ const mockPrismaService = {
   pendingRegistration: {
     findFirst: jest.fn().mockResolvedValue(null),
     create: jest.fn().mockResolvedValue({ id: 'pending-1' }),
+    findUnique: jest.fn().mockResolvedValue(null),
+    update: jest.fn().mockResolvedValue(undefined),
   },
   user: {
     findFirst: jest.fn().mockResolvedValue(null),
@@ -24,19 +26,19 @@ const mockPrismaService = {
   },
   tenant: {
     findFirst: jest.fn().mockResolvedValue(null),
-    create: jest.fn().mockResolvedValue({
+    create: jest.fn().mockImplementation(async ({ data }) => ({
       id: 'tenant-1',
-      name: 'Test Tenant',
+      name: data.name,
       slug: 'test-tenant',
-      email: 'test@example.com',
-      phone: null,
+      email: data.email ?? 'test@example.com',
+      phone: data.phone ?? null,
       status: 'ACTIVE',
       deletedAt: null,
       createdBy: 'test@example.com',
       updatedBy: 'test@example.com',
       createdAt: new Date(),
       updatedAt: new Date(),
-    }),
+    })),
   },
 };
 
@@ -50,6 +52,10 @@ import { EmailService } from './email.service';
 describe('AuthController Integration', () => {
   let app: INestApplication;
   let sendVerificationLinkSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   beforeAll(async () => {
     sendVerificationLinkSpy = jest
@@ -109,6 +115,52 @@ describe('AuthController Integration', () => {
     expect(sendVerificationLinkSpy).toHaveBeenCalledWith(
       'test@example.com',
       expect.any(String),
+    );
+  });
+
+  it('should create a tenant from a verified registration token', async () => {
+    mockPrismaService.pendingRegistration.findUnique.mockResolvedValueOnce({
+      id: 'pending-1',
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      phone: '1234567890',
+      passwordHash: 'hashed-password',
+      token: 'verified-token',
+      status: 'VERIFIED',
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/register/tenant')
+      .send({
+        token: 'verified-token',
+        name: 'Acme Corp',
+        email: 'test@example.com',
+        phone: '1234567890',
+      })
+      .expect(201);
+
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        tenant: expect.objectContaining({ name: 'Acme Corp' }),
+        user: expect.objectContaining({ email: 'test@example.com' }),
+      }),
+    );
+
+    expect(mockPrismaService.tenant.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: 'Acme Corp',
+          email: 'test@example.com',
+        }),
+      }),
+    );
+    expect(mockPrismaService.pendingRegistration.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { token: 'verified-token' },
+        data: expect.objectContaining({ status: 'COMPLETED' }),
+      }),
     );
   });
 });

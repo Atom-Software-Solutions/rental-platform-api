@@ -160,10 +160,12 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    const jti = crypto.randomUUID();
     const payload = {
       sub: user.id,
       email: user.email,
       tenantId: user.tenantId,
+      jti,
     };
 
     const accessToken = this.jwtService.sign(payload);
@@ -181,6 +183,39 @@ export class AuthService {
         emailVerified: user.emailVerified,
         createdAt: user.createdAt,
       },
+    };
+  }
+
+  async logout(user: { id: string; email: string }, authHeader?: string) {
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new BadRequestException('Missing bearer token');
+    }
+
+    const token = authHeader.replace('Bearer ', '').trim();
+    const payload = this.jwtService.decode(token) as
+      | { jti?: string; exp?: number }
+      | null;
+
+    if (!payload?.jti || !payload?.exp) {
+      throw new BadRequestException('Invalid token');
+    }
+
+    await this.prisma.revokedToken.upsert({
+      where: { jti: payload.jti },
+      update: {
+        userId: user.id,
+        expiresAt: new Date(payload.exp * 1000),
+      },
+      create: {
+        jti: payload.jti,
+        userId: user.id,
+        expiresAt: new Date(payload.exp * 1000),
+      },
+    });
+
+    return {
+      message: 'Logged out successfully',
+      email: user.email,
     };
   }
 

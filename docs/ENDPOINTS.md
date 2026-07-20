@@ -19,13 +19,13 @@ API base version: `/api/v1`
 
 ## Authentication
 
-- [ ] POST /auth/register
-- [ ] POST /auth/login
-- [ ] POST /auth/logout
+- [x] POST /auth/register
+- [x] POST /auth/login
+- [x] POST /auth/logout
 - [ ] POST /auth/refresh
 - [ ] POST /auth/password/forgot
 - [ ] POST /auth/password/reset
-- [ ] GET /auth/me
+- [x] GET /auth/me
 - [ ] PATCH /auth/me
 
 ---
