@@ -102,11 +102,11 @@ API base version: `/api/v1`
 
 # Tenants
 
-- [ ] POST /tenants
-- [ ] GET /tenants
-- [ ] GET /tenants/:id
-- [ ] PATCH /tenants/:id
-- [ ] DELETE /tenants/:id
+- [x] POST /tenants
+- [x] GET /tenants
+- [x] GET /tenants/:id
+- [x] PATCH /tenants/:id
+- [x] DELETE /tenants/:id
 
 ---
 
