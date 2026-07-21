@@ -59,16 +59,24 @@ $ pnpm run test:cov
 
 ## Deployment
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Vercel
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+The project includes a Vercel entry point in [api/index.ts](api/index.ts) and a Vercel config in [vercel.json](vercel.json).
 
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
+1. Install the Vercel CLI if needed:
+   ```bash
+   pnpm add -g vercel
+   ```
+2. From the project root, run:
+   ```bash
+   vercel
+   ```
+3. Set these environment variables in Vercel:
+   - `DATABASE_URL`
+   - `JWT_SECRET`
+   - `PORT` (optional)
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+The app will be served under the Vercel runtime with Swagger available at `/docs`.
 
 ## Resources
 

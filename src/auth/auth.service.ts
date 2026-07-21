@@ -4,7 +4,7 @@ import * as argon2 from 'argon2';
 import * as crypto from 'crypto';
 import type { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from './email.service';
-import { CreateTenantDto } from './dto/create-tenant.dto';
+import { AuthCreateTenantDto } from './dto/auth-create-tenant.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
@@ -184,7 +184,7 @@ export class AuthService {
     };
   }
 
-  async createTenant(dto: CreateTenantDto) {
+  async createTenant(dto: AuthCreateTenantDto) {
     const pending = await this.prisma.pendingRegistration.findUnique({
       where: { token: dto.token },
     });

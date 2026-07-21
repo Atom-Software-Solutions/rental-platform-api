@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Inject, Post, Query } from '@nestjs/common';
-import { CreateTenantDto } from './dto/create-tenant.dto';
+import { AuthCreateTenantDto } from './dto/auth-create-tenant.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
@@ -28,7 +28,7 @@ export class AuthController {
 
   @Post('register/tenant')
   @HttpCode(HttpStatus.CREATED)
-  async createTenant(@Body() createTenantDto: CreateTenantDto) {
+  async createTenant(@Body() createTenantDto: AuthCreateTenantDto) {
     return this.authService.createTenant(createTenantDto);
   }
 }

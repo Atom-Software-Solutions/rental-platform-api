@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "moduleResolution": "node",
+    "moduleResolution": "node16",
     "resolvePackageJsonExports": false,
     "allowJs": false,
     "esModuleInterop": true,
@@ -25,7 +25,7 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "test/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "test/**/*.ts", "api/**/*.ts"],
   "exclude": [
     "node_modules",
     "dist",
